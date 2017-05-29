@@ -1,11 +1,15 @@
 \documentclass[a4paper,12pt]{article}
-\usepackage[utf8x]{inputenc}
-\usepackage[T1]{fontenc}
+\usepackage[utf8x]{inputenc}% atkomentuoti, jei naudojat utf-8 koduotę 
+\usepackage[L7x]{fontenc}
+\usepackage[lithuanian]{babel}
+%\usepackage[T1]{fontenc}
 %\usepackage[T2A]{fontenc} % jei yra kirilica
 \usepackage[hmargin={30mm,15mm},vmargin={20mm,20mm},bindingoffset=0mm]{geometry}
 \usepackage[onehalfspacing]{setspace}
 \usepackage[colorlinks=true, linkcolor=blue, citecolor=blue, urlcolor=blue, unicode]{hyperref}
 %\parindent=7mm
+\usepackage[title,titletoc]{appendix}
+\usepackage{tocloft}
 \usepackage{graphicx}
 \usepackage{caption}
 \usepackage{float}
@@ -21,6 +25,10 @@
 \renewcommand\listingscaption{Kodo fragmentas}
 \renewcommand{\figurename}{Pav.}
 %\renewcommand\listingscaption{pav.}
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd{\@chap@pppage}{\thispagestyle{plain}}{\thispagestyle{empty}}{}{}
+\makeatother
 
 \renewcommand{\refname}{Literatūros sąrašas} % article
 %\renewcommand{\bibname}{Literatūros sąrašas} % report
@@ -163,10 +171,18 @@ Buvo pasirinkta naudoti Python programavimo kalbos sąsają, kadangi ji yra papr
 	Išplėtimo operacija yra atvirkščia ardymui. Šiuo atveju, jei bent viena taško vertė struktūriniame elemente yra lygi vienam, tuomet ir originalus taškas atvaizde bus lygus vienam. Taigi, šiuo metodu išplečiame priekinio vaizdo objekto plotą. Dažniausiai, kai norima sumažinti triukšmą paveikslėlyje, po ardymo vykdomas išplėtimas. Taip ardymas pašalina baltus triukšmo taškus atvaizde, bet ir sumažina priekinio objekto plotą. Tam, kad objekto plotas vėl padidėtų, atliekamas išplėtimas, bet bet triukšmas nebeatsiranda iš naujo.
 				\begin{figure}[H]
 					\centering
-					\includegraphics[scale=0.5]{images/dilation}
+					\includegraphics[scale=0.4]{images/dilation}
 					\caption{Kairėje – originalus atvaizdas. Dešinėje – po išplėtimo operacijos.}   % Antraštė įterpiama po paveikslėlio
 					\label{img:dilation}
 				\end{figure} 
+				
+	\item Kontūrų radimas kompiuterinėje regoje dažniausiai naudojamas aptinkant įvairius objektus, juos atpažįstant ar nustatant jų formas. Kontūrą galima apibūdinti kaip visus vienodos spalvos ar intensyvumo taškus (aplink jų pakraščius) apibrėžiančią liniją. Norint gauti tikslesnius objekto kontūrus, rekomenduojama šią operaciją atlikti binariniam atvaizdui.
+	\begin{figure}[H]
+		\centering
+		\includegraphics[scale=0.3]{images/contours}
+		\caption{Kontūrų aptikimas binariniame atvaizde.}   % Antraštė įterpiama po paveikslėlio
+		\label{img:contours}
+	\end{figure} 
 	
 	\item Mašininio mokymo algoritmai. OpenCV biblioteka turi funkcijų įvairioms mašininio mokymo operacijoms atlikti – statistinius modelius, kNN (angl. K–Nearest Neighbors) algoritmą, SVM (angl. Support Vector Machine) algoritmą, sprendimų medžių, atsitiktinių medžių algoritmus, neuroninius tinklus ir kitus.
 	
@@ -180,23 +196,132 @@ Buvo pasirinkta naudoti Python programavimo kalbos sąsają, kadangi ji yra papr
 	Galima tarti, kad kNN algoritmui įtaką daro tik artimiausių kaimynų skaičius. Tačiau, būtina paminėti, kad klasifikuojant kiekvieną naują duomenų aibės narį, esamiems duomenims priskiriami skirtingi svoriai. Jie nustatomi pagal atstumą iki naujojo nario. Remiantis šia savybe, galima tarti, kad klasifikuojant pav. 4 grafike esantį žalią apskritimą pagal 4 artimiausius kaimynus, jis būtų priskirtas raudonųjų trikampių klasei, kadangi šie yra arčiau nei mėlynieji kvadratai.
 \end{itemize} 
 
-\subsection{A1 pavadinimas}
- Tekstas ...
- \subsection{A2 pavadinimas}
- Tekstas su formule $y=x^2$...
- 
- %Paveikslas (jpg, png, pdf ir kiti formatai, jei kompiliuojate
- %su pdflatex):
-%\[
-%\includegraphics[scale=0.8]{mif-logo.png}
-%\] 
- 
- \section{Problemos sprendimas}
+\clearpage
+\section{Problemos sprendimas}
 
-\paragraph{} Norint sukurti programos, gebančios atpažinti lietuvišką rankraštį, prototipą ir jį pritaikyti, buvo pasirinkta Python programavimo kalba. Naudojantis įvariais kalbos moduliais bei OpenCV kompiuterinės regos biblioteka atlikti išsikelti uždaviniai ir įgyvendintas pagrindinis darbo tikslas – sukurtas ir praktiškai išbandytas prototipas. Šiame skyriuje aprašomas uždavinių sprendimas, jų rezultatai, kilusios problemos, pastabos ir pasiūlymai. 
+\paragraph{} Norint sukurti programos, gebančios atpažinti lietuvišką rankraštį, prototipą ir jį pritaikyti, buvo pasirinkta Python programavimo kalba. Naudojantis įvariais kalbos moduliais bei OpenCV kompiuterinės regos biblioteka atlikti išsikelti uždaviniai ir įgyvendintas pagrindinis darbo tikslas – sukurtas ir praktiškai išbandytas prototipas. Šiame skyriuje aprašomas tų uždavinių sprendimas, jų rezultatai, kilusios problemos, pastabos ir pasiūlymai.
+Programos prototipas susideda iš 3 Python kalba parašytų programinių failų, tekstinio žodyno failo, prototipo metu sukurto mokymo duomenų rinkinio ir iš jo sugeneruotų algoritmo apmokymo failų:
+\begin{itemize}
+	\item \textit{classification.py} – programos dalis, kuri naudojama mokymosi duomenų rinkinio sukūrimui.
+	\item \textit{learningset.py} – programos dalis, kurioje mokymosi duomenys sudedami į 2 atskirus tekstinius mokymosi failus atvaizdams ir jų žymėms.
+	\item \textit{testBoard.py} – programos dalis, naudojama rašmenų aptikimui ir atpažinimui.
+	\item \textit{dictionary.dat} – tekstinis failas. Jame surašyti žodžiai, kuriuos algoritmas gali atpažinti. Naudojamas teksto atpažinimo patikslinimui.
+	\item \textit{lettertags.txt} – lietuviškos abėcėlės raidžių sąrašas, kuris (pagal eilučių numerius) atitinka mokymosi duomenų aplankų pavadinimus.
+\end{itemize}	
 
-\subsection{Pradinis vaizdo apdorojimas}
- \paragraph{} Norint išbandyti tinkamą programos prototipo veikimą, iš pradžių būtina turėti kokybiškos vaizdinės medžiagos. Todėl šiame darbe naudota vaizdinė medžiaga buvo fiksuojama esant geroms, pastovioms apšvietimo sąlygoms. Tokiu būdu norėta išvengti papildomo triukšmo paveikslėliuose. Taip pat buvo stengiamasi išrinkti pakankamai kontrastingus priekinio plano objektus ir foną atvaizduose.
+
+
+\subsection{Mokymo duomenų ruošimas}
+
+\paragraph{} Kadangi šio darbo tikslas yra programa, gebanti atpažinti lietuvišką ranka parašytą tekstą, tam reikalingi duomenys, kuriais galima apmokyti algoritmą prižiūrimo mašininio mokymo būdu. Kiekvienas šiam būdui reikalingas duomenų elementas turi būti tinkamai paruoštas: to paties duomenų tipo, vienodo dydžio, su žyma, kokia klasei elementas yra priskirtas. Vienas žinomiausių tokių rinkinių yra MNIST ranka rašytų skaičių rinkinys. Jį sudaro 60 000 mokymo elementų ir 10 000 elementų, skitų testavimui \cite{MNIST}. Kiekvienas elementas sudarytas iš 2 dalių – 28 taškų aukščio ir 28  taškų pločio binarinio atvaizdo (viso turi 784 taškus) ir žymės, kokiam skaitmeniui atvaizdas yra priskirtas.
+		\begin{figure}[H]
+			\centering
+			\includegraphics[scale=0.2]{images/mnist}
+			\caption{MNIST duomenų rinkinio elementų pavyzdžiai.}   % Antraštė įterpiama po paveikslėlio
+			\label{img:mnist}
+		\end{figure}
+
+Lietuvių kalbos rašmenims tokio tipo paruošto duomenų rinkinio nėra, todėl vienas iš baigiamojo darbo uždavinių ir buvo sukurti bent jau bandomąjį duomenų rinkinį, atitinkantį šias sąlygas:
+\begin{itemize}
+	\item Rinkinį sudaro tik lietuvių kalbos abėcėlės raidės. Dabartinėje abėcėlėje yra 32 raidės. Kiekviena raidė gali būti didžioji arba mažoji. Remiantis dabartinės lietuvių kalbos žodynu, nėra žodžių, prasidedančių Ų ir Ę, todėl šios didžiosios raidės neįtraukiamos į rinkinį \cite{DLKZ}.
+	\item Kiekviena raidė yra parašyta šio darbo autoriaus. Šis apribojimas įvestas, nes planuojama rinkinio apimtis nebus didelė, tad ir teksto rašymo stilius turi būti panašus visuose elementuose.
+	\item Norint išvengti dar didesnio darbo kompleksiškumo, į rinkinį neįtraukiami jokie skyrybos ženklai.
+	\item Rinkinyje yra po 50 kiekvienos raidės atvaizdų. Kiekvienas iš jų yra juodai baltas (binarinis) 30 taškų aukščio ir 10 taškų pločio (iš viso turi 300 taškų). Toks atvaizdo dydis pasirinktas atsižvelgiant į galimas raidžių aukščio ir pločio charakteristikas.
+	\item Kiekvienas paveikslėlis, kartu su žyme, rodančia, kokiai raidei yra priskirtas, sudaro vieną duomenų rinkinio elementą.  
+\end{itemize}
+
+Pirmiausia reikalinga tekstinė medžiaga buvo parašyta ir nuskenuota. Teksto turinys parinktas taip, kad neturėtų sintaksiškai sudėtingų žodžių, o jo skyryba buvo supaprastinta siekiant išvengti kablelių, brūkšnių ir kitų skyrybos ženklų.
+
+		\begin{figure}[H]
+			\centering
+			\includegraphics[scale=0.3]{images/scanned}
+			\caption{Teksto, naudoto duomenų rinkinio kūrimui, ištrauka.}   % Antraštė įterpiama po paveikslėlio
+			\label{img:scanned}
+		\end{figure}
+
+Vėliau vykdomos vaizdo apdorojimo operacijos. Apie jas plačiau rašoma 2.2 poskyryje „Vaizdo apdorojimas“, todėl čia pateikta tik jų vykdymo tvarka ir programos kodo fragmentai.
+
+Atvaizdas įkeliamas į programą. Tuomet vykdoma spalvų erdvės transformacija ir erdvė pakeičiama iš RGB į pilkumo tonų. Tada pagal prisitaikančią slenkstinę vertę (angl. adaptive treshold) paveikslėlis paverčiamas binariniu.
+	\begin{listing}[H]
+\begin{pythoncode}
+	# Įkeliame paveikslėlį:
+	img = cv2.imread('learn2.png')
+	# Keičiame spalvų erdvę iš RGB į grayscale:
+	img = cv2.cvtColor(newimage,cv2.COLOR_BGR2GRAY)
+	# Prisitaikančios slenkstinės vertės funkcija:
+	thresh1 = cv2.adaptiveThreshold(img,255,cv2.ADAPTIVE_THRESH_MEAN_C,\
+		cv2.THRESH_BINARY,15,24)
+\end{pythoncode}
+		\begin{center}
+			xxx kodo fragmentas. Mokymosi duomenų atvaizdo paruošimas apdorojant vaizdą.
+		\end{center}		
+	\end{listing}
+
+Kitas žingsnis yra atlikti morfologines transformacijas, kad būtų išryškinti teksto kontūrai. Atlikti bandymai su įvairiais struktūrinio elemento dydžiais, skirtinga ardymo ir išplėtimo operacijų vykdymo tvarka ir jų iteracijų skaičiumi. Galiausiai nustatytos optimaliausios šių parametrų vertės mokymosi duomenų atvaizdams apdoroti.
+	\begin{listing}[H]
+\begin{pythoncode}
+	# Struktūrinio elemento (2x2 dydžio) sukūrimas ir atliktos 2 ardymo operacijos iteracijos: 
+	kernel2 = np.ones((2,2),np.uint8)		
+	eroded = cv2.erode(thresh1,kernel2,iterations = 2)
+\end{pythoncode}
+		\begin{center}
+			xxx kodo fragmentas. Mokymosi duomenų atvaizdo morfologinė ardymo transformacija.
+		\end{center}		
+	\end{listing}
+
+Verta paminėti, kad šiuo atveju ardymo operacija atlikta norint išryškinti teksto kontūrus, nes tekstas binariniame paveikslėlyje buvo juodos spalvos, o jo fonas – baltos.
+
+Išryškintame binariniame atvaizde atliekama objektų kontūrų paieška.
+	\begin{listing}[H]
+\begin{pythoncode}
+#Kontūrų suradimas:
+im2, contours, hierarchy = cv2.findContours(eroded,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+\end{pythoncode}
+		\begin{center}
+			xxx kodo fragmentas. Kontūrų suradimas atvaizde.
+		\end{center}		
+	\end{listing}
+	
+Rastų kontūrų koordinatės išsaugomos duomenų masyve. Tuomet jie filtruojami – pagal plotą atmetami neatitinkantys raidžių ar žodžių užimamo ploto. Likusieji kontūrai dar kartą filtruojami norint atmesti esančius raidžių viduje. Tam naudojama darbo autoriaus parašyta \textit{removeInnerContours} funkcija.
+
+		\begin{figure}[H]
+			\centering
+			\includegraphics[scale=0.5]{images/removecntrs}
+			\caption{Atvaizdas, kuriame vienas kontūras yra kito viduje.}   % Antraštė įterpiama po paveikslėlio
+			\label{img:removecntrs}
+		\end{figure}
+		
+
+Išfiltravus netinkamus kontūrus pradedamas mokymosi duomenų atvaizdų karpymas. Iteruojamas žodžių kontūrų masyvas. Kiekvienos iteracijos metu apdorojamas naujas žodis. Algoritmas pradeda darbą nuo numatyto pločio atkarpos. Tuomet vartotojas, naudodamasis klaviatūros navigaciniais klavišais nustato tikslią konkrečios raidės poziciją.
+
+		\begin{figure}[H]
+			\centering
+			\includegraphics[scale=0.5]{images/selectletter}
+			\caption{Žodžio kontūro sukarpymas į pavienes raides.}   % Antraštė įterpiama po paveikslėlio
+			\label{img:selectletter}
+		\end{figure}
+		
+Pasirinktas atvaizdas yra pažymimas spaudžiant atitinkamą raidės klavišą klaviatūroje. Atvaizdas sumažinamas iki 30 taškų aukščio ir 10 taškų pločio. Tuomet jis išsaugomas aplanke, kurio pavadinimas ir reiškia raidės žymą.
+ 
+Tokiu būdu buvo atrinkta ir sužymėta iš viso 3100 programos mokymo atvaizdų, po 50 vienai raidei. 
+
+Turint reikalingus mokymo duomenų atvaizdus vykdoma \textit{learningset.py} programa, kuri visų atvaizdų taškų skaitines vertes surašo į tekstinį failą \textit{generalsamplesNEW.data}. Viena eilutė faile atitinka viena atvaizdą ir turi 300 skaitinių reikšmių. Kiekvieno atvaizdo žyma analogiškai įrašoma į tekstinį \textit{generalresponsesNEW.data} failą. Jame viena eilutė atitinka vieną žymą.
+
+	\begin{listing}[H]
+\begin{pythoncode}
+# Atvaizdo taškų skaitinės reikšmės:
+2.550000000000000000e+02 2.550000000000000000e+02 2.550000000000000000e+02 ...
+# Atvaizdo žymos skaitinė reikšmė:
+5.300000000000000000e+01
+\end{pythoncode}
+		\begin{center}
+			xxx kodo fragmentas. Galutinis mokymosi duomenų formatas.
+		\end{center}		
+	\end{listing}
+
+
+\subsection{Vaizdo apdorojimas}
+ \paragraph{} Pirmas žingsnis programos kūrime buvo surinkti kokybišką vaizdinę medžiagą. Todėl šiame darbe naudoti atvaizdai buvo fiksuojami esant geroms, pastovioms apšvietimo sąlygoms. Tokiu būdu norėta išvengti papildomo triukšmo paveikslėliuose. Taip pat buvo stengiamasi išrinkti pakankamai kontrastingus priekinio plano objektus ir foną.
  
  Darbe naudojami atvaizdai pirmiausiai įkeliami į programą naudojant OpenCV bibliotekos funkcijas. Taip pat sumažinama jų skiriamoji geba.
 \begin{listing}[H]
@@ -213,10 +338,111 @@ Buvo pasirinkta naudoti Python programavimo kalbos sąsają, kadangi ji yra papr
 		2 kodo fragmentas. Atvaizdo įkėlimas į programą.
 	\end{center}		
 \end{listing}
+Kitame žingsnyje naudojama spalvų erdvės transformacija iš RGB erdvės į pilkumo tonų. Tokiu būdu gaunamas juodai baltas paveikslėlis.
+		\begin{figure}[H]
+			\centering
+			\includegraphics[scale=0.4]{images/bgr2gray}
+			\caption{Kairėje – paveikslėlis RGB erdvėje, dešinėje – pilkumo tonų.}   % Antraštė įterpiama po paveikslėlio
+			\label{img:bgr2gray}
+		\end{figure}
+
+\subsection{Rankraščio atpažinimo algoritmas}
+
+ \paragraph{} Turint mokymo duomenis išbandomas rankraščio atpažinimas. Jis vykdomas naudojant \textit{testBoard.py} faile esantį algoritmą, kurio veikimas aprašytas šiame poskyryje. Vykdant programą vartotojui kaip komandos argumentą reikia nurodyti norimo analizuoti atvaizdo vardą.
+ 
+ Programą nuspręsta apriboti 250 žodžių žodynu, kuris laikomas \textit{dictionary.dat} faile. Jį sudaro atsitiktinai parinkti sintaksiškai nesudėtingi lietuvių kalbos žodžiai, kurie nebūtinai sudaro prasmingus žodžių junginius. Žodynas algoritme naudojamas kiekvieno atpažinto žodžio patikslinimui.
+ 
+ Vykdant programą pirma atliekamas mašininio mokymo kNN algoritmo apmokymas. Tam naudojamos OpenCV bibliotekoje esančios algoritmo mokymo modelio sukūrimo ir apmokymo funkcijos.
+ \begin{listing}[H]
+ 	\begin{pythoncode}
+# Mokymo duomenų rinkinio failų įkėlimas:
+samples = np.loadtxt('generalsamplesNEW.data',np.float32)
+responses = np.loadtxt('generalresponsesNEW.data',np.float32)
+responses = responses.reshape((responses.size,1))
+# KNN algoritmo modelio sukūrimas ir apmokymas:
+global model
+model = cv2.ml.KNearest_create()
+model.train(samples, cv2.ml.ROW_SAMPLE, responses)
+ 	\end{pythoncode}
+ 	\begin{center}
+ 		xxx kodo fragmentas. KNN algoritmo modelio apmokymas.
+ 	\end{center}		
+ \end{listing}
+ 
+Modelio apmokymo funkcijos įvestyje naudojami iš mokymo duomenų sugeneruoti tekstiniai failai \textit{generalsamplesNEW.data} ir \textit{generalresponsesNEW.data}.
+
+Vėliau vykdomas elementarus įvesties atvaizdo apdorojimas. Paveikslėlis yra įkeliamas į programą, jo skiriamoji geba sumažinama, o spalvų erdvė pakeičiama į pilkumo tonų erdvę. Tada atliekama binarinio slenksčio nustatymo operacija.
+		\begin{figure}[H]
+			\centering
+			\includegraphics[scale=0.4]{images/binarythresh}
+			\caption{Kairėje – originalus paveikslėlis, dešinėje – po binarinio slenksčio nustatymo.}   % Antraštė įterpiama po paveikslėlio
+			\label{img:binarythresh}
+		\end{figure}
+
+Binariniame atvaizde atliekama objektų kontūrų paieška. Atrenkamas objektas, kuriame yra užrašytas tekstas ir atvaizdas apkerpamas. Gauto paveikslėlio spalvos invertuojamos. Antrą kartą nustatomas jo slenkstis, tačiau šįkart – pagal prisitaikančią slenkstinę vertę. 
+
+Atliekamos morfologinės vaizdo transformacijos – viena išplėtimo, dvi ardymo ir vėl viena išplėtimo operacijų iteracijos. Paruoštame atvaizde vėl vykdoma kontūrų paieška. Kaip ir ruošiant mokymo duomenų rinkinį, kontūrai filtruojami paliekant tik tuos, kurie galimai atitinka žodžius. 
+
+Gautas žodžių kontūrų masyvas iteruojamas analizuojant kiekvieną iš elementų. Žodžių skaldymas į pavienes raides vykdomas \textit{adjustWidth} funkcijoje:
+\begin{itemize}
+	\item Nuo kontūro pradžios atkrepamas nustatyto pločio ir aukščio atvaizdas.
+	\item Atvaizdas, jo koordinatės ir matmenys originaliame paveikslėlyje išsaugomi ir perduodami į funkciją \textit{getRoi}.
+	\item Joje atvaizdas apdorojamas ir paverčiamas į tokią pat išraišką, kaip ir mokymosi duomenų rinkinio elementai.
+	\item KNN algoritmas panaudojamas nustatyti, į kokią raidę panašiausias ir kiek nuo jos nutolęs įvesties paveikslėlis. Funkcija kaip atsakymą grąžina į analizuojamą atvaizdą panašiausio elemento žymę ir atstumą iki jo (kitaip tariant – kiek ir į kokią raidę jis panašiausias). Šios vertės išsaugomos.
+	 \begin{listing}[H]
+	 	\begin{pythoncode}
+# Surandamas artimiausias kaimyninis elementas:
+retval, results, neigh_resp, dists = model.findNearest(roismall, k = 1)
+	 	\end{pythoncode}
+	 	\begin{center}
+	 		xxx kodo fragmentas. KNN algoritmo artimiausio kaimyninio elemento paieška.
+	 	\end{center}		
+	 \end{listing}
+	 \item Grįžtama prie to paties žodžio kontūro. Padidinamas apkrepamo atvaizdo plotis ir aukštis ir gautas paveikslėlis vėl analizuojamas naudojant KNN algoritmą.
+	 \item Procedūra kartojama, kol pasiekiamas maksimalus nustatytas vienos raidės aukštis ir plotis originaliame atvaizde. Tuomet visi rezultatai apdorojami ir išrenkamas mažiausią skaitinę vertę turintis elementas. Jis laikomas panašiausiu į kažkurią raidę ir yra išsaugomas.
+	 \item Kadangi gautos raidės koordinatės ir plotis originaliame atvaizde žinomi, pagal juos nustatoma, nuo kur algoritmui pradėti naują paiešką. Tokiu būdu išanalizuojamas visas vienas kontūras.
+	 \item Išsaugoti rezultatai sujungiami į žodį, pagal kurį žodyne randami trys į jį panašiausi atitikmenys. Programa juos visus išspausdina.
+	 \ Viena atpažinimo iteracija baigta, analogiškai vienas po kito analizuojami kiti paveikslėlyje esantys žodžiai.
+\end{itemize} 
+ 
+\clearpage
+\section{Eksperimentas}
+\paragraph{} Sukūrus rankraščio programos prototipą buvo atlikta keletas eksperimentų jo veikimo išbandymui. Nuspręsta, kad prototipo tikslumas bus tikrinamas naudojant atitinkamomis sąlygomis gautus atvaizdus su juose parašytais lietuviškais žodžiais.
+
+Pasirinktos eksperimento sąlygos – universiteto auditorija, kurioje yra pastovus dirbtinis apšvietimas. Taip pat norint gauti kontrastingą vaizdą tekstas balta kreida užrašomas tamsiai žalioje lentoje. Lentą supa šviesus fonas.
+		\begin{figure}[H]
+			\centering
+			\includegraphics[scale=0.3]{images/sampleboard}
+			\caption{Eksperimentinio atvaizdo pavyzdys.}   % Antraštė įterpiama po paveikslėlio
+			\label{img:sampleboard}
+		\end{figure}
+
+Eksperimentui įvykdyti iš sudaryto žodyno atsitiktine tvarka buvo pasirinkti 100 žodžių. Iš jų sudaryti įvairūs sakiniai ar žodžių junginiai. Jie buvo užrašomi ant žalios lentos įvairia tvarka ir kiekiu. Taip gauti reikalingi atvaizdai.
 
 
+\subsection{Tinkamų parametrų nustatymas}
+\paragraph{} Pirmieji atvaizdų analizės bandymai parodė, kad galimus raidžių dydžius (plotį ir aukštį) reikia nustatyti eksperimentiniu būdu. Priešingu atveju žodžiai segmentuojami į raides labai netiksliai ir gauti rezultatai neturi jokios prasmės.
+		\begin{figure}[H]
+			\centering
+			\includegraphics[scale=0.2]{images/wrongsegmentation}
+			\caption{Netikslus žodžių segmentavimas.}   % Antraštė įterpiama po paveikslėlio
+			\label{img:wrongsegmentation}
+		\end{figure}
 
-   
+Keletą kartų pakartojant eksperimentą ir tikslinant raidžių dydžius, matoma, kad žodžiai sukarpomi į raides žymiai tiksliau.
+	\begin{figure}[H]
+		\centering
+		\includegraphics[scale=0.2]{images/rightsegmentation}
+		\caption{Tikslesnis žodžių skirstymas į raides.}   % Antraštė įterpiama po paveikslėlio
+		\label{img:rightsegmentation}
+	\end{figure}
+	
+\subsection{Eksperimento eiga}
+\paragraph{} Nustačius tinkamus parametrus pradėti vykdyti bandymai naudojant eksperimentinius atvaizdus. Šiame poskyryje detaliau analizuojama bandymų eiga.
+
+
+ \textbf{!!!!!!!!!!!!!!!!! po visais paveikslėliais sudėti šaltinius.}
+
  \subsection{B2 pavadinimas}
  Poskyris B2 turi du skirsnius
  \subsubsection{B21 pavadinimas}
@@ -225,8 +451,19 @@ Buvo pasirinkta naudoti Python programavimo kalbos sąsają, kadangi ji yra papr
   Tekstas....
  \subsection{B3 pavadinimas}
  Tekstas su nauja formule $y=x^3$...
+
+
+\clearpage
+\section{Išvados}
+ 
+ %Paveikslas (jpg, png, pdf ir kiti formatai, jei kompiliuojate
+ %su pdflatex):
+ %\[
+ %\includegraphics[scale=0.8]{mif-logo.png}
+ %\] 
  
  
+\clearpage 
 \begin{thebibliography}{99}
 \addcontentsline{toc}{section}{Literatūra} %% Literatura bus itraukta i turini
 \bibitem {OPENCV}
@@ -270,17 +507,32 @@ Atvaizdo slenkstinės vertės nustatymas, \url{http://docs.opencv.org/trunk/d7/d
 \bibitem{KNN}
 kNN algoritmo paaiškinimas, \url{http://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_ml/py_knn/py_knn_understanding/py_knn_understanding.html#knn-understanding}
 
+\bibitem{MNIST}
+MNIST ranka rašytų skaičių duomenų rinkinys, \url{http://yann.lecun.com/exdb/mnist/}
+
+\bibitem{DLKZ}
+Dabartinės lietuvių kalbos žodynas, \url{http://lkiis.lki.lt/dabartinis}
+
 
 \end{thebibliography} 
  
- 
+\clearpage 
 \section*{Santrauka}
 \addcontentsline{toc}{section}{Santrauka}
 Trumpa darbo santrauka...
+
+\clearpage
 \section*{Summary}
 \addcontentsline{toc}{section}{Summary}
 Short english summary... 
 
 
+\clearpage
+\appendix
+\section*{Priedas Nr. 1}
+\addcontentsline{toc}{section}{Priedas Nr. 1}
 
+
+
+long stuff
 \end{document}
